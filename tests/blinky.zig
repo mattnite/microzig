@@ -15,7 +15,6 @@ const led_pin = if (micro.config.has_board)
 else switch (micro.config.chip_name) {
     .@"ATmega328p" => micro.Pin("PB5"),
     .@"NXP LPC1768" => micro.Pin("P1.18"),
-    .@"NXP LPC1768" => micro.Pin("P1.18"),
     .@"Raspberry Pi RP2040" => micro.Pin("GPIO25"),
     else => @compileError("unknown chip"),
 };

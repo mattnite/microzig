@@ -147,7 +147,7 @@ pub const uart = struct {
     };
 };
 
-pub fn Uart(index: usize) type {
+pub fn Uart(comptime index: usize) type {
     return struct {
         const UARTn = switch (index) {
             0 => registers.UART0,

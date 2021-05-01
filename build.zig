@@ -1,6 +1,6 @@
 //! Some words on the build script here:
 //! We cannot use a test runner here as we're building for freestanding.
-//! This means we need to use addExecutable() instead of using 
+//! This means we need to use addExecutable() instead of using
 
 const std = @import("std");
 
@@ -11,17 +11,19 @@ pub fn build(b: *std.build.Builder) void {
 
     const BuildConfig = struct { name: []const u8, backing: Backing };
     const all_backings = [_]BuildConfig{
-        BuildConfig{ .name = "boards.arduino_nano", .backing = Backing{ .board = pkgs.boards.arduino_nano } },
+        //BuildConfig{ .name = "boards.arduino_nano", .backing = Backing{ .board = pkgs.boards.arduino_nano } },
         BuildConfig{ .name = "boards.mbed_lpc1768", .backing = Backing{ .board = pkgs.boards.mbed_lpc1768 } },
-        BuildConfig{ .name = "chips.atmega328p", .backing = Backing{ .chip = pkgs.chips.atmega328p } },
+        BuildConfig{ .name = "boards.raspberrypi_pico", .backing = Backing{ .board = pkgs.boards.raspberrypi_pico } },
+        //BuildConfig{ .name = "chips.atmega328p", .backing = Backing{ .chip = pkgs.chips.atmega328p } },
         BuildConfig{ .name = "chips.lpc1768", .backing = Backing{ .chip = pkgs.chips.lpc1768 } },
+        BuildConfig{ .name = "chips.rp2040", .backing = Backing{ .chip = pkgs.chips.rp2040 } },
     };
 
     const Test = struct { name: []const u8, source: []const u8 };
     const all_tests = [_]Test{
         Test{ .name = "minimal", .source = "tests/minimal.zig" },
         Test{ .name = "blinky", .source = "tests/blinky.zig" },
-        Test{ .name = "uart-sync", .source = "tests/uart-sync.zig" },
+        //Test{ .name = "uart-sync", .source = "tests/uart-sync.zig" },
     };
 
     const filter = b.option(std.Target.Cpu.Arch, "filter-target", "Filters for a certain cpu target");
@@ -30,7 +32,7 @@ pub fn build(b: *std.build.Builder) void {
         inline for (all_tests) |tst| {
             const exe = addEmbeddedExecutable(
                 b,
-                "test-" ++ tst.name ++ "-" ++ cfg.name,
+                "test-" ++ tst.name ++ "-" ++ cfg.name ++ ".elf",
                 tst.source,
                 cfg.backing,
             );
@@ -69,7 +71,14 @@ fn addEmbeddedExecutable(builder: *std.build.Builder, name: []const u8, source: 
             Pkg{
                 .name = "cpu",
                 .path = chip.cpu.path,
-                .dependencies = &[_]Pkg{ microzig_base, pkgs.mmio },
+                .dependencies = &[_]Pkg{
+                    microzig_base,
+                    pkgs.mmio,
+                    Pkg{
+                        .name = "chip",
+                        .path = chip.path,
+                    },
+                },
             },
             Pkg{
                 .name = "microzig-linker",
@@ -77,6 +86,16 @@ fn addEmbeddedExecutable(builder: *std.build.Builder, name: []const u8, source: 
             },
         },
     };
+
+    const microzig_cache_dir = "zig-cache/microzig/";
+
+    {
+        var temp_buf: [256]u8 = undefined;
+        std.fs.cwd().makeDir(microzig_cache_dir) catch |err| switch (err) {
+            error.PathAlreadyExists => {},
+            else => @panic(std.fmt.bufPrint(&temp_buf, "failed to create cache directory: {}", .{err}) catch unreachable),
+        };
+    }
 
     const linker_script_name = blk: {
         const hash = hash_blk: {
@@ -92,12 +111,11 @@ fn addEmbeddedExecutable(builder: *std.build.Builder, name: []const u8, source: 
             break :hash_blk mac;
         };
 
-        const file_prefix = "zig-cache/microzig/";
         const file_suffix = ".ld";
 
-        var ld_file_name: [file_prefix.len + 2 * hash.len + file_suffix.len]u8 = undefined;
+        var ld_file_name: [microzig_cache_dir.len + 2 * hash.len + file_suffix.len]u8 = undefined;
         const filename = std.fmt.bufPrint(&ld_file_name, "{s}{}{s}", .{
-            file_prefix,
+            microzig_cache_dir,
             std.fmt.fmtSliceHexLower(&hash),
             file_suffix,
         }) catch unreachable;
@@ -124,11 +142,12 @@ fn addEmbeddedExecutable(builder: *std.build.Builder, name: []const u8, source: 
             break :hash_blk mac;
         };
 
-        const file_prefix = "zig-cache/microzig/config-";
+        const file_prefix = "config-";
         const file_suffix = ".zig";
 
-        var ld_file_name: [file_prefix.len + 2 * hash.len + file_suffix.len]u8 = undefined;
-        const filename = std.fmt.bufPrint(&ld_file_name, "{s}{}{s}", .{
+        var ld_file_name: [file_prefix.len + 2 + file_prefix.len * hash.len + file_suffix.len]u8 = undefined;
+        const filename = std.fmt.bufPrint(&ld_file_name, "{s}{s}{}{s}", .{
+            microzig_cache_dir,
             file_prefix,
             std.fmt.fmtSliceHexLower(&hash),
             file_suffix,
@@ -256,6 +275,17 @@ const pkgs = struct {
                 .abi = .eabi,
             },
         };
+        const cortex_m0p = Cpu{
+            .name = "ARM Cortex-M0+",
+            .path = "src/modules/cpus/cortex-m0p/cortex-m0p.zig",
+            .linker_script = "src/modules/cpus/cortex-m0p/linker.ld",
+            .target = std.zig.CrossTarget{
+                .cpu_arch = .arm,
+                .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m0 },
+                .os_tag = .freestanding,
+                .abi = .eabi,
+            },
+        };
         const cortex_m3 = Cpu{
             .name = "ARM Cortex-M3",
             .path = "src/modules/cpus/cortex-m3/cortex-m3.zig",
@@ -280,6 +310,11 @@ const pkgs = struct {
             .path = "src/modules/chips/lpc1768/lpc1768.zig",
             .cpu = cpus.cortex_m3,
         };
+        const rp2040 = Chip{
+            .name = "Raspberry Pi RP2040",
+            .path = "src/modules/chips/rp2040/rp2040.zig",
+            .cpu = cpus.cortex_m0p,
+        };
     };
 
     const boards = struct {
@@ -292,6 +327,11 @@ const pkgs = struct {
             .name = "mbed LPC1768",
             .path = "src/modules/boards/mbed-lpc1768/mbed-lpc1768.zig",
             .chip = chips.lpc1768,
+        };
+        const raspberrypi_pico = Board{
+            .name = "Raspberry Pi Pico",
+            .path = "src/modules/boards/raspberrypi-pico/raspberrypi-pico.zig",
+            .chip = chips.rp2040,
         };
     };
 };

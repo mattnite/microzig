@@ -7,6 +7,9 @@ const reset_mapper = struct {
     const uart0_: struct { uart0: u1 = 0 } = .{};
     const uart1_: struct { uart1: u1 = 0 } = .{};
 
+    const spi0_: struct { spi0: u1 = 0 } = .{};
+    const spi1_: struct { spi1: u1 = 0 } = .{};
+
     const pll_sys_: struct { pll_sys: u1 = 0 } = .{};
     const pll_usb_: struct { pll_usb: u1 = 0 } = .{};
 };

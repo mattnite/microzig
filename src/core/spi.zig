@@ -2,21 +2,8 @@ const std = @import("std");
 const micro = @import("microzig.zig");
 const chip = @import("chip");
 
-pub fn Uart(comptime index: usize) type {
-    const SystemUart = chip.Uart(index);
+fn SpiIo(comptime Self: type) type {
     return struct {
-        const Self = @This();
-
-        internal: SystemUart,
-
-        /// Initializes the UART with the given config and returns a handle to the uart.
-        pub fn init(config: Config) InitError!Self {
-            //micro.clock.ensure();
-            return Self{
-                .internal = try SystemUart.init(config),
-            };
-        }
-
         pub fn canRead(self: Self) bool {
             return self.internal.canRead();
         }
@@ -51,19 +38,82 @@ pub fn Uart(comptime index: usize) type {
     };
 }
 
+fn SpiDevice(Spi_: anytype, pin_: anytype) type {
+    const cs_gpio_ = micro.Gpio(pin_, .{ .mode = .output, .initial_state = .low });
+
+    return struct {
+        const Self = @This();
+
+        internal: Spi_,
+
+        const cs_gpio = cs_gpio_;
+
+        pub fn init() void {
+            cs_gpio.init();
+        }
+
+        pub fn start(self: Self) void {
+            cs_gpio.write(.high);
+        }
+        pub fn stop(self: Self) void {
+            cs_gpio.write(.low);
+        }
+
+        pub usingnamespace SpiIo(Self);
+    };
+}
+
+pub fn Spi(comptime index: usize, comptime devices: anytype) type {
+    const SystemSpi = chip.Spi(index);
+
+    // contains mapping field index -> SpiDevice type
+    var device_mapper: []const type = &[_]type{};
+
+    inline for (std.meta.fields(@TypeOf(devices))) |field, i| {
+        device_mapper = device_mapper ++ &[_]type{SpiDevice(SystemSpi, @field(devices, field.name))};
+    }
+
+    return struct {
+        const Self = @This();
+
+        internal: SystemSpi,
+
+        /// Initializes the Spi with the given config and returns a handle to the Spi.
+        pub fn init(config: Config) InitError!Self {
+            inline for (device_mapper) |device_| {
+                device_.init();
+            }
+
+            return Self{
+                .internal = try SystemSpi.init(config),
+            };
+        }
+
+        fn deviceType(dev: anytype) type {
+            return device_mapper[std.meta.fieldIndex(@TypeOf(devices), @tagName(dev)).?];
+        }
+
+        pub fn device(self: Self, dev: anytype) deviceType(dev) {
+            return .{
+                .internal = self.internal,
+            };
+        }
+
+        pub usingnamespace SpiIo(Self);
+    };
+}
+
 /// A UART configuration. The config defaults to the *8N1* setting, so "8 data bits, no parity, 1 stop bit" which is the 
 /// most common serial format.
 pub const Config = struct {
     baud_rate: u32,
-    stop_bits: StopBits = .one,
-    parity: ?Parity = null,
     data_bits: DataBits = .eight,
+    endianess: std.builtin.Endian,
 };
 
 // TODO: comptime verify that the enums are valid
-pub const DataBits = chip.uart.DataBits;
-pub const StopBits = chip.uart.StopBits;
-pub const Parity = chip.uart.Parity;
+pub const DataBits = chip.spi.DataBits;
+pub const Polarity = enum {};
 
 pub const InitError = error{
     UnsupportedWordSize,

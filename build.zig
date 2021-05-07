@@ -12,10 +12,10 @@ pub fn build(b: *std.build.Builder) void {
     const BuildConfig = struct { name: []const u8, backing: Backing };
     const all_backings = [_]BuildConfig{
         //BuildConfig{ .name = "boards.arduino_nano", .backing = Backing{ .board = pkgs.boards.arduino_nano } },
-        BuildConfig{ .name = "boards.mbed_lpc1768", .backing = Backing{ .board = pkgs.boards.mbed_lpc1768 } },
+        //BuildConfig{ .name = "boards.mbed_lpc1768", .backing = Backing{ .board = pkgs.boards.mbed_lpc1768 } },
         BuildConfig{ .name = "boards.raspberrypi_pico", .backing = Backing{ .board = pkgs.boards.raspberrypi_pico } },
         //BuildConfig{ .name = "chips.atmega328p", .backing = Backing{ .chip = pkgs.chips.atmega328p } },
-        BuildConfig{ .name = "chips.lpc1768", .backing = Backing{ .chip = pkgs.chips.lpc1768 } },
+        //BuildConfig{ .name = "chips.lpc1768", .backing = Backing{ .chip = pkgs.chips.lpc1768 } },
         BuildConfig{ .name = "chips.rp2040", .backing = Backing{ .chip = pkgs.chips.rp2040 } },
     };
 
@@ -24,6 +24,7 @@ pub fn build(b: *std.build.Builder) void {
         Test{ .name = "minimal", .source = "tests/minimal.zig" },
         Test{ .name = "blinky", .source = "tests/blinky.zig" },
         Test{ .name = "uart-sync", .source = "tests/uart-sync.zig" },
+        Test{ .name = "spi-sync", .source = "tests/spi-sync.zig" },
     };
 
     const filter = b.option(std.Target.Cpu.Arch, "filter-target", "Filters for a certain cpu target");

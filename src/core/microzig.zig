@@ -19,7 +19,7 @@ pub const cpu = chip.cpu;
 pub const interrupts = @import("interrupts.zig");
 
 /// Module that provides clock related functions
-pub const clock = @import("clock.zig");
+//pub const clock = @import("clock.zig");
 
 pub const gpio = @import("gpio.zig");
 pub const Gpio = gpio.Gpio;
@@ -29,6 +29,9 @@ pub const Pin = pin.Pin;
 
 pub const uart = @import("uart.zig");
 pub const Uart = uart.Uart;
+
+pub const spi = @import("spi.zig");
+pub const Spi = spi.Spi;
 
 pub const debug = @import("debug.zig");
 

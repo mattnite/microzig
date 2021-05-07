@@ -32,6 +32,8 @@ pub const Uart = uart.Uart;
 
 pub const debug = @import("debug.zig");
 
+pub const reset = chip.reset;
+
 /// The microzig panic handler. Will disable interrupts and loop endlessly.
 /// Export this symbol from your main file to enable microzig:
 /// ```

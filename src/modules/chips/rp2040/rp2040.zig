@@ -4,6 +4,9 @@ const micro_linker = @import("microzig-linker");
 
 pub const cpu = @import("cpu");
 pub const registers = @import("registers.zig");
+pub const clocks = @import("clocks.zig");
+
+pub const reset = @import("reset.zig").reset;
 
 pub const memory_regions = [_]micro_linker.MemoryRegion{
     micro_linker.MemoryRegion{ .offset = 0x10000000, .length = 2 * 1024 * 1024, .kind = .flash },
@@ -156,9 +159,14 @@ pub fn Uart(comptime index: usize) type {
         };
         const Self = @This();
 
-        pub fn init(comptime config: micro.uart.Config) !Self {
+        pub fn init(config: micro.uart.Config) !Self {
 
-            // TODO: reset uart
+            // TODO: do we really should reset the uart here?
+            reset(switch (index) {
+                0 => .{.uart0},
+                1 => .{.uart1},
+                else => unreachable,
+            });
 
             UARTn.UARTCR.modify(.{
                 .UARTEN = 1, // enable uart
@@ -171,9 +179,36 @@ pub fn Uart(comptime index: usize) type {
 
                 .WLEN = @enumToInt(config.data_bits),
                 .STP2 = @enumToInt(config.stop_bits),
-                .PEN = if (config.parity) |_| 1 else 0,
+                .PEN = if (config.parity) |_| @as(u1, 1) else @as(u1, 0),
                 .EPS = if (config.parity) |p| @enumToInt(p) else 0,
             });
+
+            {
+                // the uart controller doesn't count start and stop bits
+                const data_bits: u32 = switch (config.data_bits) {
+                    .five => @as(u32, 5),
+                    .six => 6,
+                    .seven => 7,
+                    .eight => 8,
+                } + if (config.parity) |_| @as(u32, 1) else 0;
+
+                const baud_rate_div: u32 = (data_bits * clocks.current_clocks_config.clocks.sys.frequency) / config.baud_rate;
+                var baud_ibrd: u16 = @intCast(u16, baud_rate_div >> 7);
+                var baud_fbrd: u6 = @intCast(u6, ((baud_rate_div & 0x7f) + 1) / 2);
+                if (baud_ibrd == 0) {
+                    baud_ibrd = 1;
+                    baud_fbrd = 0;
+                } else if (baud_ibrd >= 65535) {
+                    baud_ibrd = 65535;
+                    baud_fbrd = 0;
+                }
+
+                UARTn.UARTIBRD.write(.{ .BAUD_DIVINT = baud_ibrd });
+                UARTn.UARTFBRD.write(.{ .BAUD_DIVFRAC = baud_fbrd });
+
+                //
+                UARTn.UARTLCR_H.modify(.{});
+            }
 
             return Self{};
         }

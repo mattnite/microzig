@@ -102,6 +102,9 @@ pub const startup_logic = struct {
             @memcpy(data_start, data_src, data_len);
         }
 
+        if (@hasDecl(chip, "clocks"))
+            chip.clocks.init();
+
         microzig_main();
     }
 };

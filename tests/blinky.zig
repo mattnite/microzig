@@ -19,9 +19,9 @@ else switch (micro.config.chip_name) {
     else => @compileError("unknown chip"),
 };
 
-pub fn main() callconv(.C) void {
-    if (micro.config.chip_name == .@"Raspberry Pi RP2040")
-        led_pin.route(.gpio);
+pub fn main() void {
+    micro.reset(.{.gpio});
+    led_pin.route(.gpio);
 
     const led = micro.Gpio(led_pin, .{
         .mode = .output,

@@ -123,7 +123,7 @@ pub fn addEmbeddedExecutable(
 
     // might not be true for all machines (Pi Pico), but
     // for the HAL it's true (it doesn't know the concept of threading)
-    exe.single_threaded = true;
+    //exe.single_threaded = true;
     exe.setTarget(chip.cpu.target);
 
     const linkerscript = try LinkerScriptStep.create(builder, chip);
@@ -133,7 +133,11 @@ pub fn addEmbeddedExecutable(
     // - Generate the linker scripts from the "chip" or "board" package instead of using hardcoded ones.
     //   - This requires building another tool that runs on the host that compiles those files and emits the linker script.
     //    - src/tools/linkerscript-gen.zig is the source file for this
-    exe.bundle_compiler_rt = true;
+    exe.bundle_compiler_rt = switch (chip.cpu.target.cpu_arch.?) {
+        .avr => false,
+        else => true,
+    };
+
     switch (backing) {
         .chip => {
             var app_pkgs = std.ArrayList(Pkg).init(builder.allocator);

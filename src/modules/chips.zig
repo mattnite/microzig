@@ -12,7 +12,7 @@ const root_path = root() ++ "/";
 pub const atmega328p = Chip{
     .name = "ATmega328p",
     .path = root_path ++ "chips/atmega328p/atmega328p.zig",
-    .cpu = cpus.avr5,
+    .cpu = cpus.atmega328p,
     .memory_regions = &.{
         MemoryRegion{ .offset = 0x000000, .length = 32 * 1024, .kind = .flash },
         MemoryRegion{ .offset = 0x800100, .length = 2048, .kind = .ram },

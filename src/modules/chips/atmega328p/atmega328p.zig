@@ -1,5 +1,7 @@
 const std = @import("std");
 
+pub usingnamespace @import("registers.zig");
+
 pub const cpu = @import("cpu");
 const Port = enum(u8) {
     B = 1,

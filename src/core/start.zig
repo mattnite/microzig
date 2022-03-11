@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const app = @import("app");
 const microzig = @import("microzig");
 
@@ -7,15 +8,27 @@ pub usingnamespace app;
 fn isValidField(field_name: []const u8) bool {
     return !std.mem.startsWith(u8, field_name, "reserved") and
         !std.mem.eql(u8, field_name, "initial_stack_pointer") and
-        !std.mem.eql(u8, field_name, "reset");
+        !std.mem.eql(u8, field_name, "Reset") and
+        !std.mem.eql(u8, field_name, "RESET");
 }
 
 const VectorTable = microzig.chip.VectorTable;
 export const vector_table: VectorTable linksection("microzig_flash_start") = blk: {
-    var tmp: microzig.chip.VectorTable = .{
-        .initial_stack_pointer = microzig.config.end_of_stack,
-        .Reset = .{ .C = microzig.cpu.startup_logic._start },
+    var tmp: microzig.chip.VectorTable = switch (builtin.target.cpu.arch) {
+        .thumb => .{
+            .initial_stack_pointer = microzig.config.end_of_stack,
+            .Reset = .{
+                .C = microzig.cpu.startup_logic._start,
+            },
+        },
+        .avr => .{
+            .RESET = .{
+                .C = microzig.cpu.startup_logic._start,
+            },
+        },
+        else => @compileError("Vector table not supported yet"),
     };
+
     if (@hasDecl(app, "interrupts")) {
         if (@typeInfo(app.interrupts) != .Struct)
             @compileLog("root.interrupts must be a struct");

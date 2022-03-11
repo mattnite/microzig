@@ -25,45 +25,9 @@ pub inline fn cbi(comptime reg: u5, comptime bit: u3) void {
 }
 
 pub const startup_logic = struct {
-    comptime {
-        asm (
-            \\.section microzig_flash_start
-            \\ jmp _start
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-            \\ jmp _unhandled_vector
-        );
-    }
-
-    export fn _unhandled_vector() callconv(.Naked) noreturn {
-        @panic("Unhandled interrupt");
-    }
-
     extern fn microzig_main() noreturn;
 
-    export fn _start() callconv(.Naked) noreturn {
+    pub fn _start() callconv(.Naked) noreturn {
         // At startup the stack pointer is at the end of RAM
         // so, no need to set it manually!
 

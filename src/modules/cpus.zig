@@ -14,7 +14,18 @@ pub const avr5 = Cpu{
         .cpu_arch = .avr,
         .cpu_model = .{ .explicit = &std.Target.avr.cpu.avr5 },
         .os_tag = .freestanding,
-        .abi = .eabi,
+        .abi = .none,
+    },
+};
+
+pub const atmega328p = Cpu{
+    .name = "atmega328p",
+    .path = root_path ++ "cpus/avr/avr5.zig",
+    .target = std.zig.CrossTarget{
+        .cpu_arch = .avr,
+        .cpu_model = .{ .explicit = &std.Target.avr.cpu.atmega328p },
+        .os_tag = .freestanding,
+        .abi = .none,
     },
 };
 
